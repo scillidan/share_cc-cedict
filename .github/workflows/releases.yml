@@ -1,4 +1,4 @@
-name: Monthly CC-CEDICT Release and Dictionary Creation
+name: Create Releases
 
 on:
   schedule:
