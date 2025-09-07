@@ -1,44 +1,44 @@
 name: Monthly CC-CEDICT Release and Dictionary Creation
 
 on:
-	schedule:
-		- cron: '0 0 1 * *'  # 00:00 on the 1st of every month (UTC)
-	workflow_dispatch: # allow manual trigger
+  schedule:
+    - cron: '0 0 1 * *'  # 00:00 on the 1st of every month (UTC)
+  workflow_dispatch: # allow manual trigger
 
 permissions:
-	contents: write
+  contents: write
 
 jobs:
-	release:
-		runs-on: ubuntu-latest
+  release:
+    runs-on: ubuntu-latest
 
-		steps:
-		- name: Checkout repository
-			uses: actions/checkout@v4
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-		- name: Set up Python 3.11
-			uses: actions/setup-python@v4
-			with:
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
         python-version: "3.11"
 
-		- name: Install system dependencies
-			run: |
+    - name: Install system dependencies
+      run: |
         sudo apt-get update
         sudo apt-get install -y p7zip-full zip unzip
 
-		- name: Install Python packages
-			run: |
+    - name: Install Python packages
+      run: |
         pip install pyglossary lxml beautifulsoup4 python-idzip
 
-		- name: Fetch latest release date and format it
-			id: get_latest_release
-			run: |
+    - name: Fetch latest release date and format it
+      id: get_latest_release
+      run: |
         curl -s 'https://www.mdbg.net/chinese/dictionary?page=cedict' -o page.html
 
         RELEASE_FULL=$(grep -oP '(?<=Latest release: <strong>).*?(?= GMT</strong>)' page.html | head -n 1)
         if [ -z "$RELEASE_FULL" ]; then
-        	echo "Failed to extract the latest release date"
-        	exit 1
+          echo "Failed to extract the latest release date"
+          exit 1
         fi
 
         # Extract date part YYYY-MM-DD and convert to YYYYMMDD
@@ -48,41 +48,41 @@ jobs:
 
         echo "Latest release date detected: $RELEASE_DATE"
 
-		- name: Check last stored release date
-			id: check_last_release
-			run: |
+    - name: Check last stored release date
+      id: check_last_release
+      run: |
         if [ -f Release.txt ]; then
-        	LAST_RELEASE=$(cat Release.txt)
+          LAST_RELEASE=$(cat Release.txt)
         else
-        	LAST_RELEASE=""
+          LAST_RELEASE=""
         fi
         echo "last_release=$LAST_RELEASE" >> $GITHUB_OUTPUT
         echo "Last stored release date: $LAST_RELEASE"
 
-		- name: Exit if no new release
-			if: steps.get_latest_release.outputs.release_date == steps.check_last_release.outputs.last_release
-			run: |
+    - name: Exit if no new release
+      if: steps.get_latest_release.outputs.release_date == steps.check_last_release.outputs.last_release
+      run: |
         echo "No new release date found. Exiting."
         exit 0
 
-		- name: Download CC-CEDICT ZIP file
-			run: |
+    - name: Download CC-CEDICT ZIP file
+      run: |
         curl -LO https://www.mdbg.net/export/cedict/cedict_1_0_ts_utf-8_mdbg.zip
         unzip cedict_1_0_ts_utf-8_mdbg.zip -d .
 
-		- name: Extract .7z files (if any exist)
-			run: |
+    - name: Extract .7z files (if any exist)
+      run: |
         shopt -s nullglob
         for file in *.7z.001*; do
-        	if [ -f "$file" ]; then
-        		7z x "$file" -aoa
-        	fi
+          if [ -f "$file" ]; then
+            7z x "$file" -aoa
+          fi
         done
 
-		- name: Run pyglossary and related processing
-			env:
+    - name: Run pyglossary and related processing
+      env:
         RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
-			run: |
+      run: |
         pyglossary ./cedict_ts.u8 ./cc-cedict-${RELEASE_DATE}-tabfile.txt --read-format=EDICT2 --read-options="colorize_tones=false" --write-format=Tabfile --name=CC-CEDICT  2>&1 | tee log_u8_to_tabfile.txt
         python text_format.py cc-cedict-${RELEASE_DATE}-tabfile.txt cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt
         pyglossary ./cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt ./cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
@@ -90,35 +90,35 @@ jobs:
         python html2ansi.py cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt cc-cedict-${RELEASE_DATE}-tabfile-formatted-html2ansi.txt
         pyglossary ./cc-cedict-${RELEASE_DATE}-tabfile-formatted-html2ansi.txt ./cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html2ansi --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
 
-		- name: Create zip files for Stardict sets
-			run: |
+    - name: Create zip files for Stardict sets
+      run: |
         for base in *.ifo; do
-        	prefix="${base%.ifo}"
-        	if [[ -f "$prefix.ifo" && -f "$prefix.dict.dz" && -f "$prefix.idx" ]]; then
-        		echo "Creating ${prefix}.zip from $prefix.ifo, $prefix.dict.dz, $prefix.idx"
-        		zip -j "${prefix}.zip" "$prefix.ifo" "$prefix.dict.dz" "$prefix.idx"
-        	else
-        		echo "Skipping $prefix, missing required files"
-        	fi
+          prefix="${base%.ifo}"
+          if [[ -f "$prefix.ifo" && -f "$prefix.dict.dz" && -f "$prefix.idx" ]]; then
+            echo "Creating ${prefix}.zip from $prefix.ifo, $prefix.dict.dz, $prefix.idx"
+            zip -j "${prefix}.zip" "$prefix.ifo" "$prefix.dict.dz" "$prefix.idx"
+          else
+            echo "Skipping $prefix, missing required files"
+          fi
         done
 
-		- name: Create a txt file with current commit SHA
-			run: echo "${{ github.sha }}" > Release.txt
+    - name: Create a txt file with current commit SHA
+      run: echo "${{ github.sha }}" > Release.txt
 
-		- name: Commit updated Release.txt with new release date
-			run: |
+    - name: Commit updated Release.txt with new release date
+      run: |
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
         git add Release.txt
         git commit -m "Update last processed release date to ${{ steps.get_latest_release.outputs.release_date }}" || echo "No changes to commit"
         git push
 
-		- name: Create GitHub Release and upload files
-			uses: softprops/action-gh-release@v2
-			if: github.ref_type == 'tag' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-			with:
+    - name: Create GitHub Release and upload files
+      uses: softprops/action-gh-release@v2
+      if: github.ref_type == 'tag' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+      with:
         tag_name: ${{ steps.get_latest_release.outputs.release_date }}
         name: "CC-CEDICT Release ${{ steps.get_latest_release.outputs.release_date }}"
         files: |
-        	*.zip
-        	*.txt
+          *.zip
+          *.txt
