@@ -2,7 +2,7 @@
 
 [![Create Releases](https://github.com/scillidan/share_cc-cedict/actions/workflows/releases.yml/badge.svg)](https://github.com/scillidan/share_cc-cedict/actions/workflows/releases.yml)
 
-Data from [CC-CEDICT download](https://www.mdbg.net/chinese/dictionary?page=cedict) under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). See [CC-CEDICT Wiki](https://cc-cedict.org/wiki/).
+Data from [CC-CEDICT](https://www.mdbg.net/chinese/dictionary?page=cedict) under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). See more on [CC-CEDICT Wiki](https://cc-cedict.org/wiki/).
 
 ## Usage
 
