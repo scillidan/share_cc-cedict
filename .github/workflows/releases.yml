@@ -67,17 +67,8 @@ jobs:
 
     - name: Download CC-CEDICT ZIP file
       run: |
-        curl -LO https://www.mdbg.net/export/cedict/cedict_1_0_ts_utf-8_mdbg.zip
+        curl -LO https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.zip
         unzip cedict_1_0_ts_utf-8_mdbg.zip -d .
-
-    - name: Extract .7z files (if any exist)
-      run: |
-        shopt -s nullglob
-        for file in *.7z.001*; do
-          if [ -f "$file" ]; then
-            7z x "$file" -aoa
-          fi
-        done
 
     - name: Run pyglossary and related processing
       env:
