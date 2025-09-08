@@ -18,6 +18,10 @@ See preview screenshot [here](asset/).
 ```sh
 export STARDICT_DATA_DIR="<path_to_dictionaries>"
 chmod +x ./sdcv-awk.sh
+# Install
 ln -sfn $(pwd)/sdcv-awk.sh ~/.local/bin/sdcv-awk
+# Usage
 sdcv --use-dict CC-CEDICT -n <word> | sdcv-awk
+# Uninstall
+rm ~/.local/bin/sdcv-awk
 ```
