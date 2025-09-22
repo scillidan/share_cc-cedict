@@ -34,18 +34,13 @@ jobs:
       id: get_latest_release
       run: |
         curl -s 'https://www.mdbg.net/chinese/dictionary?page=cedict' -o page.html
-
         RELEASE_FULL=$(grep -oP '(?<=Latest release: <strong>).*?(?= GMT</strong>)' page.html | head -n 1)
         if [ -z "$RELEASE_FULL" ]; then
           echo "Failed to extract the latest release date"
           exit 1
         fi
-
-        # Extract date part YYYY-MM-DD and convert to YYYYMMDD
         RELEASE_DATE=$(echo "$RELEASE_FULL" | cut -d' ' -f1 | tr -d '-')
-
         echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
-
         echo "Latest release date detected: $RELEASE_DATE"
 
     - name: Check last stored release date
@@ -77,19 +72,33 @@ jobs:
         pyglossary ./cedict_ts.u8 ./cc-cedict-${RELEASE_DATE}-tabfile.txt --read-format=EDICT2 --read-options="colorize_tones=false" --write-format=Tabfile --name=CC-CEDICT  2>&1 | tee log_u8_to_tabfile.txt
         python text_format.py cc-cedict-${RELEASE_DATE}-tabfile.txt cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt
         pyglossary ./cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt ./cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
-        # pyglossary ./cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt ./cc-cedict-${RELEASE_DATE}-yomitan.zip --read-format=Tabfile --write-format=Yomichan --name=CC-CEDICT
         python html2ansi.py cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt cc-cedict-${RELEASE_DATE}-tabfile-formatted-html2ansi.txt
         pyglossary ./cc-cedict-${RELEASE_DATE}-tabfile-formatted-html2ansi.txt ./cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html2ansi --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
 
-    - name: Create zip files for Stardict sets
+    - name: Debug list generated files
+      env:
+        RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
       run: |
-        for base in *.ifo; do
-          prefix="${base%.ifo}"
+        echo "All generated files:"
+        ls -l
+        echo "Files for html prefix:"
+        ls -l cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html*
+        echo "Files for html2ansi prefix:"
+        ls -l cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html2ansi*
+
+    - name: Create zip files for Stardict sets
+      env:
+        RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
+      run: |
+        for prefix in cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html2ansi; do
+          echo "Processing $prefix"
           if [[ -f "$prefix.ifo" && -f "$prefix.dict.dz" && -f "$prefix.idx" ]]; then
             echo "Creating ${prefix}.zip from $prefix.ifo, $prefix.dict.dz, $prefix.idx"
             zip -j "${prefix}.zip" "$prefix.ifo" "$prefix.dict.dz" "$prefix.idx"
           else
-            echo "Skipping $prefix, missing required files"
+            echo "Skipping $prefix, missing required files."
+            echo "Existing files:"
+            ls -l ${prefix}.* || echo "No files found for $prefix"
           fi
         done
 
