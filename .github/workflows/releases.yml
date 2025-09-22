@@ -90,16 +90,27 @@ jobs:
       env:
         RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
       run: |
-        for prefix in cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html2ansi; do
-          echo "Processing $prefix"
-          if [[ -f "$prefix.ifo" && -f "$prefix.dict" && -f "$prefix.idx" ]]; then
-            echo "Creating ${prefix}.zip from $prefix.ifo, $prefix.dict, $prefix.idx"
-            zip -j "${prefix}.zip" "$prefix.ifo" "$prefix.dict" "$prefix.idx"
-          else
-            echo "Skipping $prefix, missing required files."
-            echo "Existing files:"
-            ls -l ${prefix}.* || echo "No files found for $prefix"
+        for base in *.ifo; do
+          prefix="${base%.ifo}"
+          if [[ ! -f "$prefix.ifo" ]]; then
+            echo "Skipping $prefix, missing $prefix.ifo"
+            continue
           fi
+          if [[ ! -f "$prefix.idx" ]]; then
+            echo "Skipping $prefix, missing $prefix.idx"
+            continue
+          fi
+          dict_file=""
+          if [[ -f "$prefix.dict.dz" ]]; then
+            dict_file="$prefix.dict.dz"
+          elif [[ -f "$prefix.dict" ]]; then
+            dict_file="$prefix.dict"
+          else
+            echo "Skipping $prefix, missing $prefix.dict.dz or $prefix.dict"
+            continue
+          fi
+          echo "Creating ${prefix}.zip from $prefix.ifo, $dict_file, $prefix.idx"
+          zip -j "${prefix}.zip" "$prefix.ifo" "$dict_file" "$prefix.idx"
         done
 
     - name: Create a txt file with current commit SHA
