@@ -1,8 +1,7 @@
-
-/cc-cedict-20250907-stardict-mergesyns-html
-/cc-cedict-20250907-stardict-mergesyns-html2ansi
-cc-cedict-20250907-tabfile-formatted-html2ansi.txt
-cc-cedict-20250907-tabfile-formatted.txt
-cc-cedict-20250907-tabfile.txt
+/cc-cedict-*-stardict-mergesyns-html
+/cc-cedict-*-stardict-mergesyns-html2ansi
+cc-cedict-*-tabfile-formatted-html2ansi.txt
+cc-cedict-*-tabfile-formatted.txt
+cc-cedict-*-tabfile.txt
 cedict_1_0_ts_utf-8_mdbg.zip
 cedict_ts.u8
