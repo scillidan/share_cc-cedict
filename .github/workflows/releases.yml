@@ -72,6 +72,7 @@ jobs:
         pyglossary ./cedict_ts.u8 ./cc-cedict-${RELEASE_DATE}-tabfile.txt --read-format=EDICT2 --read-options="colorize_tones=false" --write-format=Tabfile --name=CC-CEDICT  2>&1 | tee log_u8_to_tabfile.txt
         python text_format.py cc-cedict-${RELEASE_DATE}-tabfile.txt cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt
         pyglossary ./cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt ./cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
+        pyglossary ./cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt ./cc-cedict-${RELEASE_DATE}-yomichan.zip --read-format=Tabfile --write-format=Yomichan --name=CC-CEDICT
         python html2ansi.py cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt cc-cedict-${RELEASE_DATE}-tabfile-formatted-html2ansi.txt
         pyglossary ./cc-cedict-${RELEASE_DATE}-tabfile-formatted-html2ansi.txt ./cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html2ansi --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
 
