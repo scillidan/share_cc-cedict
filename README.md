@@ -9,7 +9,7 @@ Data from [CC-CEDICT](https://www.mdbg.net/chinese/dictionary?page=cedict) under
 Download `.zip` from [Releases](https://github.com/scillidan/share_cc-cedict/releases):
 - For GoldenDict/SilverDict, use `*--stardict-mergesyns-html.zip`.
 - For sdcv, use `*-stardict-mergesyns-html2ansi.zip`.
-- For Yomichan/Yomitan, recommend [MarvNC/cc-cedict-yomitan](https://github.com/MarvNC/cc-cedict-yomitan).
+- For Yomichan/Yomitan, use `*-yomichan-*.zip`.
 
 See preview screenshot [here](asset/).
 
