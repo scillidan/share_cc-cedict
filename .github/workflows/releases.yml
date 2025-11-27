@@ -3,7 +3,7 @@ name: Create Releases
 on:
   schedule:
     - cron: '0 0 1 * *'  # 00:00 on the 1st of every month (UTC)
-  workflow_dispatch: # allow manual trigger
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -69,23 +69,20 @@ jobs:
       env:
         RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
       run: |
-        pyglossary ./cedict_ts.u8 ./cc-cedict-${RELEASE_DATE}-tabfile.txt --read-format=EDICT2 --read-options="colorize_tones=false" --write-format=Tabfile --name=CC-CEDICT  2>&1 | tee log_u8_to_tabfile.txt
-        python text_format.py cc-cedict-${RELEASE_DATE}-tabfile.txt cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt
-        pyglossary ./cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt ./cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
-        pyglossary ./cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt ./cc-cedict-${RELEASE_DATE}-yomichan.zip --read-format=Tabfile --write-format=Yomichan --name=CC-CEDICT
-        python html2ansi.py cc-cedict-${RELEASE_DATE}-tabfile-formatted.txt cc-cedict-${RELEASE_DATE}-tabfile-formatted-html2ansi.txt
-        pyglossary ./cc-cedict-${RELEASE_DATE}-tabfile-formatted-html2ansi.txt ./cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html2ansi --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
-
-    - name: Debug list generated files
-      env:
-        RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
-      run: |
-        echo "All generated files:"
-        ls -l
-        echo "Files for html prefix:"
-        ls -l cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html*
-        echo "Files for html2ansi prefix:"
-        ls -l cc-cedict-${RELEASE_DATE}-stardict-mergesyns-html2ansi*
+        # tabfile
+        pyglossary ./cedict_ts.u8 ./_cc-cedict-${RELEASE_DATE}.txt --read-format=EDICT2 --read-options="colorize_tones=false" -read-options="link_references=true" --read-options="summary_alternatives=true" --write-format=Tabfile --name=CC-CEDICT  2>&1 | tee _log_u82tabfile.txt
+        # tabfile-formatted
+        python text_format.py _cc-cedict-${RELEASE_DATE}.txt _cc-cedict-${RELEASE_DATE}-formatted.txt
+        # stardict-mergesyns
+        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted.txt ./cc-cedict-${RELEASE_DATE}-stardict-mergesyns --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
+        # tabfile-formatted-html2ansi
+        python html2ansi.py _cc-cedict-${RELEASE_DATE}-formatted.txt _cc-cedict-${RELEASE_DATE}-formatted-html2ansi.txt
+        # sdcv
+        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted-html2ansi.txt ./cc-cedict-${RELEASE_DATE}-sdcv --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
+        # dictd
+        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted-html2ansi.txt ./cc-cedict-${RELEASE_DATE}-dictd --read-format=Tabfile --write-format=DictOrg --write-options="dictzip=true" --name=CC-CEDICT
+        # yomichan
+        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted.txt ./cc-cedict-${RELEASE_DATE}-yomichan.zip --read-format=Tabfile --write-format=Yomichan --name=CC-CEDICT
 
     - name: Create zip files for Stardict sets
       env:
@@ -113,6 +110,12 @@ jobs:
           echo "Creating ${prefix}.zip from $prefix.ifo, $dict_file, $prefix.idx"
           zip -j "${prefix}.zip" "$prefix.ifo" "$dict_file" "$prefix.idx"
         done
+
+    - name: Create zip files for Dictd sets
+      env:
+        RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
+      run: |
+        zip -j "cc-cedict-${RELEASE_DATE}-dictd.zip" "cc-cedict-${RELEASE_DATE}-dictd.dict.dz" "cc-cedict-${RELEASE_DATE}-dictd.index"
 
     - name: Create a txt file with current commit SHA
       run: echo "${{ github.sha }}" > Release.txt
