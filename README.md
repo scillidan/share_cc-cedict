@@ -6,12 +6,13 @@ Data from [CC-CEDICT](https://www.mdbg.net/chinese/dictionary?page=cedict) under
 
 ## Usage
 
-Download `.zip` from [Releases](https://github.com/scillidan/share_cc-cedict/releases):
-- For GoldenDict/SilverDict, use `*--stardict-mergesyns-html.zip`.
-- For sdcv, use `*-stardict-mergesyns-html2ansi.zip`.
-- For Yomichan/Yomitan, use `*-yomichan-*.zip`.
+1. Download files from [Releases](https://github.com/scillidan/share_cc-cedict/releases).
+2. Use them in GoldenDict (StarDict format), sdcv, dictd, Yomichan/Yomitan.
+3. See preview screenshot [here](asset/).
 
-See preview screenshot [here](asset/).
+### GoldenDict
+
+Not recommended used with dictionaries `Simplified to traditional Chinese` or `Traditional to simplified Chinese`. If you do, The word entry will be displayed repeatedly once.
 
 ### sdcv
 
@@ -24,4 +25,32 @@ ln -sfn $(pwd)/sdcv-awk.sh ~/.local/bin/sdcv-awk
 sdcv --use-dict CC-CEDICT -n <word> | sdcv-awk
 # Uninstall
 rm ~/.local/bin/sdcv-awk
+```
+
+### dictd
+
+```sh
+# Arch
+sudo cp cc-cedict-<version>-dictd.* /usr/share/dictd/
+sudo vim /etc/dict/dictd.conf
+```
+
+```
+# Add database
+database cc-cedict {
+	data /usr/share/dictd/cc-cedict-<version>-dictd.dict.dz
+	index /usr/share/dictd/cc-cedict-<version>-dictd.index
+}
+```
+
+```sh
+sudo systemctl restart dictd.service
+```
+
+```sh
+chmod +x ./dictd-awk.sh
+# Install
+ln -sfn $(pwd)/dictd-awk.sh ~/.local/bin/dictd-awk
+# Usage
+dict --host localhost --port 2528 --database cc-cedict -n <word> | dictd-awk
 ```
