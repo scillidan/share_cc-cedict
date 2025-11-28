@@ -1,5 +1,4 @@
 # Write by GPT-4o mini🧙‍♂️, scillidan🤡
-# Purpose: Formatting HTML content to Plaintext.
 # Usage: python text_format.py <input_file> <output_file>
 
 import sys
