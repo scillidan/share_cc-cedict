@@ -22,7 +22,7 @@ chmod +x ./sdcv-awk.sh
 # Install
 ln -sfn $(pwd)/sdcv-awk.sh ~/.local/bin/sdcv-awk
 # Usage
-sdcv --use-dict CC-CEDICT -n <word> | sdcv-awk
+sdcv --color --use-dict CC-CEDICT -n <word> | sdcv-awk
 # Uninstall
 rm ~/.local/bin/sdcv-awk
 ```
@@ -31,7 +31,8 @@ rm ~/.local/bin/sdcv-awk
 
 ```sh
 # Arch
-sudo cp cc-cedict-<version>-dictd.* /usr/share/dictd/
+unzip cc-cedict-<version>-dictd.zip
+sudo cp cc-cedict-<version>-dictd.{index,dict.dz} /usr/share/dictd/
 sudo vim /etc/dict/dictd.conf
 ```
 
