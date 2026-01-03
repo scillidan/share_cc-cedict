@@ -22,14 +22,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y zip unzip
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
-
-    - name: Install pyglossary
-      run: pip install pyglossary lxml beautifulsoup4 python-idzip tqdm
-
     - name: (CC-CEDICT) Fetch latest release date
       id: get_latest_release
       run: |
@@ -93,6 +85,15 @@ jobs:
         curl -LO https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.zip
         unzip cedict_1_0_ts_utf-8_mdbg.zip -d .
 
+    - name: Set up Python
+      if: steps.check_new_release.outputs.should_continue == 'true'
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install pyglossary
+      run: pip install pyglossary lxml beautifulsoup4 python-idzip tqdm
+
     - name: Convert with pyglossary and python scripts
       if: steps.check_new_release.outputs.should_continue == 'true'
       env:
@@ -147,7 +148,7 @@ jobs:
           zip -j "${prefix}.zip" "$prefix.ifo" "$dict_file" "$prefix.idx"
         done
 
-    - name: Create ZIP files of Dictd
+    - name: Create ZIP files of dictd
       if: steps.check_new_release.outputs.should_continue == 'true'
       env:
         RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
