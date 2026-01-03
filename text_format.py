@@ -48,7 +48,7 @@ def match_remove_except_br(text):
     return text
 
 def match_other(text):
-    # Replace repeated <br> to <br>
+    # Replace repeated <br> with <br>
     text = re.sub(r'(<br>\s*)+', '<br>', text)
     # Replace / with ", "
     text = re.sub(r'\s*/\s*', ', ', text)
