@@ -74,10 +74,12 @@ def format_line(line):
     return formatted_line
 
 def main():
-    if len(sys.argv) == 3:
-        input_path, output_path = sys.argv[1], sys.argv[2]
+    if len(sys.argv) != 3:
+        sys.exit(1)
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
 
-    with open(input_path, 'r', encoding='utf-8') as file:
+    with open(input_file, 'r', encoding='utf-8') as file:
         lines = file.readlines()
 
     formatted_lines = []
@@ -89,7 +91,7 @@ def main():
         if formatted_line.strip() != '':
             formatted_lines.append(formatted_line)
 
-    with open(output_path, 'w', encoding='utf-8') as file_out:
+    with open(output_file, 'w', encoding='utf-8') as file_out:
         file_out.write('\n'.join(formatted_lines))
 
     print(f"Processed {len(formatted_lines)} lines")
