@@ -168,7 +168,7 @@ jobs:
         done
 
     - name: Create GitHub Release and upload files
-      if: steps.check_new_release.outputs.should_continue == 'true' && (github.ref_type == 'tag' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      if: steps.check_new_release.outputs.should_continue == 'true'
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.get_latest_release.outputs.release_date }}
