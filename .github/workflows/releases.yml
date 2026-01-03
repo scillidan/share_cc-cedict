@@ -1,0 +1,178 @@
+name: Create Releases
+
+on:
+  schedule:
+    # 00:00 on the 1st of every month (UTC)
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y zip unzip
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install pyglossary
+      run: pip install pyglossary lxml beautifulsoup4 python-idzip tqdm
+
+    - name: (CC-CEDICT) Fetch latest release date
+      id: get_latest_release
+      run: |
+        # Download the webpage
+        curl -s 'https://www.mdbg.net/chinese/dictionary?page=cedict' -o page.html
+
+        # Extract the latest release date from the webpage
+        RELEASE_FULL=$(grep -oP '(?<=Latest release: <strong>).*?(?= GMT</strong>)' page.html | head -n 1)
+
+        # Verify that the extraction was successful
+        if [ -z "$RELEASE_FULL" ]; then
+          echo "Failed to extract the latest release date"
+          exit 1
+        fi
+
+        # Format the date
+        RELEASE_DATE=$(echo "$RELEASE_FULL" | cut -d' ' -f1 | tr -d '-')
+
+        echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
+        echo "Latest release date detected: $RELEASE_DATE"
+
+    - name: (CC-CEDICT) Check last release date from GitHub releases
+      id: check_last_release
+      run: |
+        LATEST_TAG=$(curl -s \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/releases/latest \
+          2>/dev/null | grep '"tag_name"' | cut -d'"' -f4 || echo "")
+
+        if [ -z "$LATEST_TAG" ]; then
+          echo "No previous releases found"
+          LATEST_TAG=""
+        fi
+
+        echo "last_release=$LATEST_TAG" >> $GITHUB_OUTPUT
+        echo "Last release from GitHub: $LATEST_TAG"
+
+    - name: (CC-CEDICT) Check if new release is available
+      id: check_new_release
+      run: |
+        LATEST_DATE="${{ steps.get_latest_release.outputs.release_date }}"
+        LAST_RELEASE="${{ steps.check_last_release.outputs.last_release }}"
+
+        if [ "$LATEST_DATE" = "$LAST_RELEASE" ]; then
+          echo "No new release date found. Skipping..."
+          echo "should_continue=false" >> $GITHUB_OUTPUT
+        else
+          echo "New release available: $LATEST_DATE (previous: $LAST_RELEASE)"
+          echo "should_continue=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: (CC-CEDICT) Exit if no new release
+      if: steps.check_new_release.outputs.should_continue == 'false'
+      run: |
+        echo "No new release available. Cancelling workflow."
+        exit 0
+
+    - name: (CC-CEDICT) Download ZIP file
+      if: steps.check_new_release.outputs.should_continue == 'true'
+      run: |
+        curl -LO https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.zip
+        unzip cedict_1_0_ts_utf-8_mdbg.zip -d .
+
+    - name: Convert with pyglossary and python script
+      if: steps.check_new_release.outputs.should_continue == 'true'
+      env:
+        RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
+      run: |
+        # tabfile
+        pyglossary ./cedict_ts.u8 ./_cc-cedict-${RELEASE_DATE}.txt --read-format=EDICT2 --read-options="colorize_tones=false" --read-options="link_references=true" --read-options="summary_alternatives=true" --write-format=Tabfile --name=CC-CEDICT  2>&1 | tee _log_u8_to_tabfile.txt
+
+        # tabfile-formatted
+        python text_format.py _cc-cedict-${RELEASE_DATE}.txt _cc-cedict-${RELEASE_DATE}-formatted.txt
+
+        # stardict-mergesyns
+        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted.txt ./cc-cedict-${RELEASE_DATE}-stardict-mergesyns --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
+
+        # tabfile-formatted-html2ansi
+        python html2ansi.py _cc-cedict-${RELEASE_DATE}-formatted.txt _cc-cedict-${RELEASE_DATE}-formatted-html2ansi.txt
+
+        # sdcv
+        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted-html2ansi.txt ./cc-cedict-${RELEASE_DATE}-sdcv --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
+
+        # dictd
+        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted-html2ansi.txt ./cc-cedict-${RELEASE_DATE}-dictd --read-format=Tabfile --write-format=DictOrg --write-options="dictzip=true" --name=CC-CEDICT
+
+        # yomichan
+        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted.txt ./cc-cedict-${RELEASE_DATE}-yomichan.zip --read-format=Tabfile --write-format=Yomichan --name=CC-CEDICT
+
+    - name: Create ZIP files of Stardict
+      if: steps.check_new_release.outputs.should_continue == 'true'
+      env:
+        RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
+      run: |
+        for base in *.ifo; do
+          prefix="${base%.ifo}"
+          if [[ ! -f "$prefix.ifo" ]]; then
+            echo "Skipping $prefix, missing $prefix.ifo"
+            continue
+          fi
+          if [[ ! -f "$prefix.idx" ]]; then
+            echo "Skipping $prefix, missing $prefix.idx"
+            continue
+          fi
+          dict_file=""
+          if [[ -f "$prefix.dict.dz" ]]; then
+            dict_file="$prefix.dict.dz"
+          elif [[ -f "$prefix.dict" ]]; then
+            dict_file="$prefix.dict"
+          else
+            echo "Skipping $prefix, missing $prefix.dict.dz or $prefix.dict"
+            continue
+          fi
+          echo "Creating ${prefix}.zip from $prefix.ifo, $dict_file, $prefix.idx"
+          zip -j "${prefix}.zip" "$prefix.ifo" "$dict_file" "$prefix.idx"
+        done
+
+    - name: Create ZIP files of Dictd
+      if: steps.check_new_release.outputs.should_continue == 'true'
+      env:
+        RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
+      run: |
+        zip -j "cc-cedict-${RELEASE_DATE}-dictd.zip" \
+          "cc-cedict-${RELEASE_DATE}-dictd.dict.dz" \
+          "cc-cedict-${RELEASE_DATE}-dictd.index"
+
+    - name: Generate SHA256 checksums
+      if: steps.check_new_release.outputs.should_continue == 'true'
+      run: |
+        for file in ./_*.txt ./cc-cedict-*.zip;
+        do
+          if [ -f "$file" ]; then
+            sha256sum "$file" > "$file.sha256";
+            echo "Generated checksum for $file";
+          fi
+        done
+
+    - name: Create GitHub Release and upload files
+      if: steps.check_new_release.outputs.should_continue == 'true' && (github.ref_type == 'tag' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.get_latest_release.outputs.release_date }}
+        name: "${{ steps.get_latest_release.outputs.release_date }}"
+        files: |
+          _*.txt
+          cc-cedict-*.zip
