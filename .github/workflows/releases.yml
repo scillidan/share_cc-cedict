@@ -93,7 +93,7 @@ jobs:
         curl -LO https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.zip
         unzip cedict_1_0_ts_utf-8_mdbg.zip -d .
 
-    - name: Convert with pyglossary and python script
+    - name: Convert with pyglossary and python scripts
       if: steps.check_new_release.outputs.should_continue == 'true'
       env:
         RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
