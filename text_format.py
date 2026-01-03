@@ -1,4 +1,4 @@
-# Usage: python file.py <input_file> <output_file>
+# Usage: python file.py <input> <output>
 
 import sys
 import re
@@ -54,47 +54,49 @@ def match_other(text):
     text = re.sub(r'\s*/\s*', ', ', text)
     return text
 
-def format_line(line):
+def format(line):
     if '\t' not in line:
         return line.strip()
     parts = line.split('\t', 1)
-    word_part = parts[0]
-    meaning_part = parts[1].strip()
+    word = parts[0]
+    meaning = parts[1].strip()
 
-    meaning_part = match_add(meaning_part)
-    meaning_part = match_replace(meaning_part)
-    meaning_part = match_convert(meaning_part)
-    meaning_part = match_remove(meaning_part)
-    meaning_part = match_remove_except_br(meaning_part)
-    meaning_part = match_other(meaning_part)
-    meaning_part = unescape(meaning_part)
-    meaning_part = meaning_part.strip()
+    meaning = match_add(meaning)
+    meaning = match_replace(meaning)
+    meaning = match_convert(meaning)
+    meaning = match_remove(meaning)
+    meaning = match_remove_except_br(meaning)
+    meaning = match_other(meaning)
+    meaning = unescape(meaning)
+    meaning = meaning.strip()
 
-    formatted_line = f"{word_part}\t{meaning_part}"
-    return formatted_line
+    result = f"{word}\t{meaning}"
+    return result
 
 def main():
     if len(sys.argv) != 3:
+        print(f"Usage: python {sys.argv[0]} <input> <output>")
         sys.exit(1)
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
 
-    with open(input_file, 'r', encoding='utf-8') as file:
-        lines = file.readlines()
+    input = sys.argv[1]
+    output = sys.argv[2]
 
-    formatted_lines = []
+    with open(input, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    results = []
     for line in lines:
         line = line.rstrip('\n\r')
         if line.strip() == '':
             continue
-        formatted_line = format_line(line)
-        if formatted_line.strip() != '':
-            formatted_lines.append(formatted_line)
+        result = format(line)
+        if result.strip() != '':
+            results.append(result)
 
-    with open(output_file, 'w', encoding='utf-8') as file_out:
-        file_out.write('\n'.join(formatted_lines))
+    with open(output, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(results))
 
-    print(f"Processed {len(formatted_lines)} lines")
+    print(f"Processed {len(results)} lines")
 
 if __name__ == '__main__':
     main()
