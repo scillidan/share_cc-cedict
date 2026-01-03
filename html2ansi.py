@@ -7,8 +7,8 @@ def html_to_ansi(input_file, output_file):
         with open(input_file, 'r', encoding='utf-8') as infile, \
              open(output_file, 'w', encoding='utf-8') as outfile:
             for line in infile:
-                # Replace <br />  with the string \n
-                modified_line = line.replace('<br />', r'\n')
+                # Replace <br>  with the string \n
+                modified_line = line.replace('<br>', r'\n')
                 outfile.write(modified_line)
     except Exception as e:
         print(f"Error: {e}")
