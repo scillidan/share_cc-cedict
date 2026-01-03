@@ -4,71 +4,73 @@ import sys
 import re
 from html import unescape
 
-def add_br(text):
-    # Add <br /> between </div> and <ul>
-    text = re.sub(r'</div>\s*<div>\s*<ul>', '</div><br /><ul>', text)
+def match_add(text):
+    # Add <br> between </div> and <ul>
+    text = re.sub(r'</div>\s*<div>\s*<ul>', '</div><br><ul>', text)
+    # Add space between </font> and <font ...>
+    text = re.sub(r'</font>\s*<font([^>]*)>', r'</font> <font\1>', text)
     return text
 
-def remove_div_border(text):
+def match_replace(text):
+    # Replace all variations of <br> tags with <br>
+    text = re.sub(r'<br\s*/?>', '<br>', text)
+    # Replace with space
+    text = text.replace('\xa0', ' ').replace('&nbsp;', ' ')
+    return text
+
+def match_convert(text):
+    # Convert "<ul><li>item1</li><li>item2</li></ul>" to "- item1<br>- item2"
+    def repl(match):
+        ul_content = match.group(1)
+        items = re.findall(r'<li>(.*?)</li>', ul_content, re.DOTALL)
+        cleaned_items = ['- ' + re.sub(r'\s+', ' ', unescape(item.strip())) for item in items]
+        return '<br><br>' + '<br>'.join(cleaned_items)
+    text = re.sub(r'<ul>(.*?)</ul>', repl, text, flags=re.DOTALL)
+    return text
+
+def match_remove(text):
+    # Remove <font></font>
+    text = re.sub(r'<font[^>]*>', '', text)
+    text = re.sub(r'</font>', '', text)
     # Remove <div style:"border...></div>
-    pattern = re.compile(r'<div style="border: 1px solid; padding: 5px">(.*?)</div>', re.DOTALL)
+    pattern = re.compile(r'<div style="border: 1px solid; padding: 5px">(.*)</div>', re.DOTALL)
     match = pattern.search(text)
     if match:
         return match.group(1).strip()
     return text
 
-def remove_font_tags(text):
-    # Remove <font></font>
-    text = re.sub(r'<font[^>]*>', '', text)
-    text = re.sub(r'</font>', '', text)
-    return text
-
-def replace_to_space(text):
-    # Replace with space
-    return text.replace('\xa0', ' ').replace('&nbsp;', ' ')
-    return text
-
-def convert_html_list(text):
-    # Convert "<ul><li>item1</li><li>item2</li></ul>" to "- item1<br />- item2"
-    def repl(match):
-        ul_content = match.group(1)
-        items = re.findall(r'<li>(.*?)</li>', ul_content, re.DOTALL)
-        cleaned_items = ['- ' + re.sub(r'\s+', ' ', unescape(item.strip())) for item in items]
-        return '<br />' + '<br />'.join(cleaned_items)
-    text = re.sub(r'<ul>(.*?)</ul>', repl, text, flags=re.DOTALL)
-    return text
-
-def replace_br_tags(text):
-    # Convert all variations of <br> tags to <br />
-    text = re.sub(r'<br\s*/?>', '<br />', text)
-    return text
-
-def remove_all_other_tags_except_br(text):
+def match_remove_except_br(text):
     # Remove all other tags (e.g. div, big, span etc) except <br>
     placeholder = "___BR_TAG___"
-    text = text.replace('<br />', placeholder)
+    text = text.replace('<br>', placeholder)
     text = re.sub(r'<[^>]+>', '', text)
-    text = text.replace(placeholder, '<br />')
+    text = text.replace(placeholder, '<br>')
+    return text
+
+def match_other(text):
+    # Replace repeated <br> to <br>
+    text = re.sub(r'(<br>\s*)+', '<br>', text)
+    # Replace / with ", "
+    text = re.sub(r'\s*/\s*', ', ', text)
     return text
 
 def format_line(line):
     if '\t' not in line:
         return line.strip()
     parts = line.split('\t', 1)
-    dict_part = parts[0]
-    html_part = parts[1].strip()
+    word_part = parts[0]
+    meaning_part = parts[1].strip()
 
-    html_part = add_br(html_part)
-    html_part = remove_div_border(html_part)
-    html_part = remove_font_tags(html_part)
-    html_part = replace_to_space(html_part)
-    html_part = convert_html_list(html_part)
-    html_part = replace_br_tags(html_part)
-    html_part = remove_all_other_tags_except_br(html_part)
-    html_part = unescape(html_part)
-    html_part = html_part.strip()
+    meaning_part = match_add(meaning_part)
+    meaning_part = match_replace(meaning_part)
+    meaning_part = match_convert(meaning_part)
+    meaning_part = match_remove(meaning_part)
+    meaning_part = match_remove_except_br(meaning_part)
+    meaning_part = match_other(meaning_part)
+    meaning_part = unescape(meaning_part)
+    meaning_part = meaning_part.strip()
 
-    formatted_line = f"{dict_part}\t{html_part}"
+    formatted_line = f"{word_part}\t{meaning_part}"
     return formatted_line
 
 def main():
