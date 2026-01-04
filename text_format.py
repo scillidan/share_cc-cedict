@@ -1,4 +1,4 @@
-# Usage: python file.py <input> <output>
+# Usage: python file.py <input_file> <output_file>
 
 import sys
 import re
@@ -50,6 +50,8 @@ def match_remove_except_br(text):
 def match_other(text):
     # Replace repeated <br> with <br>
     text = re.sub(r'(<br>\s*)+', '<br>', text)
+    # Replace repeated ' ' with ' '
+    text = re.sub(r'\s+', ' ', text)
     # Replace / with ", "
     text = re.sub(r'\s*/\s*', ', ', text)
     return text
@@ -75,25 +77,15 @@ def format(line):
 
 def main():
     if len(sys.argv) != 3:
-        print(f"Usage: python {sys.argv[0]} <input> <output>")
+        print(f"Usage: python {sys.argv[0]} <input_file> <output_file>")
         sys.exit(1)
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
 
-    input = sys.argv[1]
-    output = sys.argv[2]
-
-    with open(input, 'r', encoding='utf-8') as f:
+    with open(input_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
-    results = []
-    for line in lines:
-        line = line.rstrip('\n\r')
-        if line.strip() == '':
-            continue
-        result = format(line)
-        if result.strip() != '':
-            results.append(result)
-
-    with open(output, 'w', encoding='utf-8') as f:
+    with open(output_file, 'w', encoding='utf-8') as f:
         f.write('\n'.join(results))
 
     print(f"Processed {len(results)} lines")
