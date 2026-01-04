@@ -51,7 +51,7 @@ def match_other(text):
     # Replace repeated <br> with <br>
     text = re.sub(r'(<br>\s*)+', '<br>', text)
     # Replace repeated ' ' with ' '
-    text = re.sub(r'\s+', ' ', text)
+    return re.sub(r' {2,}', ' ', text)
     # Replace / with ", "
     text = re.sub(r'\s*/\s*', ', ', text)
     return text
