@@ -7,7 +7,7 @@ Data from [CC-CEDICT](https://www.mdbg.net/chinese/dictionary?page=cedict) under
 ## Usage
 
 1. Download files from [Releases](https://github.com/scillidan/share_cc-cedict/releases).
-2. Use them in GoldenDict (StarDict format), sdcv, dictd, Yomichan/Yomitan.
+2. Use them in GoldenDict (StarDict format), sdcv, dictd.
 3. See preview screenshot [here](asset/).
 
 ### GoldenDict
