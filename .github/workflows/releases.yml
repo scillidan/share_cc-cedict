@@ -84,6 +84,7 @@ jobs:
       run: |
         curl -LO https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.zip
         unzip cedict_1_0_ts_utf-8_mdbg.zip -d .
+        rm cedict_1_0_ts_utf-8_mdbg.zip
 
     - name: Set up Python
       if: steps.check_new_release.outputs.should_continue == 'true'
@@ -92,7 +93,7 @@ jobs:
         python-version: "3.11"
 
     - name: Install pyglossary
-      run: pip install pyglossary lxml beautifulsoup4 python-idzip tqdm
+      run: pip install pyglossary lxml beautifulsoup4 python-idzip tqdm pyicu
 
     - name: Convert with pyglossary and python scripts
       if: steps.check_new_release.outputs.should_continue == 'true'
@@ -163,7 +164,7 @@ jobs:
     - name: Generate SHA256 checksums
       if: steps.check_new_release.outputs.should_continue == 'true'
       run: |
-        for file in ./_*.txt ./cc-cedict-*.zip;
+        for file in _*.txt *.zip *.slob;
         do
           if [ -f "$file" ]; then
             sha256sum "$file" > "$file.sha256";
@@ -179,4 +180,5 @@ jobs:
         name: "${{ steps.get_latest_release.outputs.release_date }}"
         files: |
           _*.txt
-          cc-cedict-*.zip
+          *.zip
+          *.slob
