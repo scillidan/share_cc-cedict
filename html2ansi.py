@@ -10,10 +10,10 @@ def convert(input_file, output_file):
                 # Replace <br>  with the string \n
                 modified_line = line.replace('<br>', r'\n')
                 outfile.write(modified_line)
+        return True
     except Exception as e:
         print(f"Error: {e}")
-        sys.exit(1)
-    sys.exit(0)
+        return False
 
 def main():
     if len(sys.argv) != 3:
@@ -22,8 +22,11 @@ def main():
     input_file = sys.argv[1]
     output_file = sys.argv[2]
 
-    convert(input_file, output_file)
-    print(f"Conversion completed: {input_file} to {output_file}")
+    if convert(input_file, output_file):
+        print(f"Conversion completed: {input_file} to {output_file}")
+        sys.exit(0)
+    else:
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
