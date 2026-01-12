@@ -120,6 +120,9 @@ jobs:
         # yomichan
         pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted.txt ./cc-cedict-${RELEASE_DATE}-yomichan.zip --read-format=Tabfile --write-format=Yomichan --name=CC-CEDICT
 
+        # aard2
+        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted.txt ./cc-cedict-${RELEASE_DATE}-aard2.slob --read-format=Tabfile --write-format=Aard2Slob --name=CC-CEDICT
+
     - name: Create ZIP files of Stardict
       if: steps.check_new_release.outputs.should_continue == 'true'
       env:
