@@ -51,7 +51,7 @@ def match_other(text):
     # Replace repeated <br> with <br>
     text = re.sub(r'(<br>\s*)+', '<br>', text)
     # Replace repeated ' ' with ' '
-    return re.sub(r' {2,}', ' ', text)
+    text = re.sub(r' {2,}', ' ', text)
     # Replace / with ", "
     text = re.sub(r'\s*/\s*', ', ', text)
     return text
@@ -84,6 +84,12 @@ def main():
 
     with open(input_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
+
+    results = []
+    for line in lines:
+        formatted_line = format(line)
+        if formatted_line:
+            results.append(formatted_line)
 
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write('\n'.join(results))
