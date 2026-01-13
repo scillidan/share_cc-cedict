@@ -139,9 +139,10 @@ jobs:
       env:
         RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
       run: |
-        zip -j "cc-cedict-${RELEASE_DATE}-dictd.zip" \
-          "cc-cedict-${RELEASE_DATE}-dictd.dict.dz" \
-          "cc-cedict-${RELEASE_DATE}-dictd.index"
+        prefix=cc-cedict
+        zip -j "${prefix}-${RELEASE_DATE}-dictd.zip" \
+          "${prefix}-${RELEASE_DATE}-dictd.dict.dz" \
+          "${prefix}-${RELEASE_DATE}-dictd.index"
 
     - name: Generate SHA256 checksums
       if: steps.check_new_release.outputs.should_continue == 'true'
