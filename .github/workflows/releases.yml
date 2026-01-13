@@ -126,8 +126,6 @@ jobs:
 
     - name: ZIP Stardict
       if: steps.check_new_release.outputs.should_continue == 'true'
-      env:
-        RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
       run: |
         for base in *.ifo; do
           prefix="${base%.ifo}"
