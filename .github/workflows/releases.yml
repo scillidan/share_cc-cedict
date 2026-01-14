@@ -100,53 +100,54 @@ jobs:
       env:
         RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
       run: |
+        filename=CC-CEDICT-${RELEASE_DATE}
+        dictname=CC-CEDICT
+
         # tabfile
-        pyglossary ./cedict_ts.u8 ./_cc-cedict-${RELEASE_DATE}.txt --read-format=EDICT2 --read-options="colorize_tones=false" --read-options="link_references=true" --read-options="summary_alternatives=true" --write-format=Tabfile --name=CC-CEDICT  2>&1 | tee _log_u8_to_tabfile.txt
+        pyglossary ./cedict_ts.u8 ./_${filename}.txt --read-format=EDICT2 --read-options="colorize_tones=false" --read-options="link_references=true" --read-options="summary_alternatives=true" --write-format=Tabfile --name=${dictname}  2>&1 | tee _log_u8_to_tabfile.txt
 
         # tabfile-formatted
-        python text_format.py _cc-cedict-${RELEASE_DATE}.txt _cc-cedict-${RELEASE_DATE}-formatted.txt
+        python text_format.py _${filename}.txt _${filename}-formatted.txt
 
         # stardict-mergesyns
-        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted.txt ./cc-cedict-${RELEASE_DATE}-stardict-mergesyns --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
+        pyglossary ./_${filename}-formatted.txt ./${filename}-stardict-mergesyns --read-format=Tabfile --write-format=StardictMergeSyns --name=${dictname}
 
         # tabfile-formatted-html2ansi
-        python html2ansi.py _cc-cedict-${RELEASE_DATE}-formatted.txt _cc-cedict-${RELEASE_DATE}-formatted-html2ansi.txt
+        python html2ansi.py _${filename}-formatted.txt _${filename}-formatted-html2ansi.txt
 
         # sdcv
-        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted-html2ansi.txt ./cc-cedict-${RELEASE_DATE}-sdcv --read-format=Tabfile --write-format=StardictMergeSyns --name=CC-CEDICT
+        pyglossary ./_${filename}-formatted-html2ansi.txt ./${filename}-sdcv --read-format=Tabfile --write-format=StardictMergeSyns --name=${dictname}
 
         # dictd
-        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted-html2ansi.txt ./cc-cedict-${RELEASE_DATE}-dictd --read-format=Tabfile --write-format=DictOrg --write-options="dictzip=true" --name=CC-CEDICT
+        pyglossary ./_${filename}-formatted-html2ansi.txt ./${filename}-dictd --read-format=Tabfile --write-format=DictOrg --write-options="dictzip=true" --name=${dictname}
 
         # yomichan
-        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted.txt ./cc-cedict-${RELEASE_DATE}-yomichan.zip --read-format=Tabfile --write-format=Yomichan --name=CC-CEDICT
+        pyglossary ./_${filename}-formatted.txt ./${filename}-yomichan.zip --read-format=Tabfile --write-format=Yomichan --name=${dictname}
 
         # aard2
-        pyglossary ./_cc-cedict-${RELEASE_DATE}-formatted.txt ./cc-cedict-${RELEASE_DATE}-aard2.slob --read-format=Tabfile --write-format=Aard2Slob --name=CC-CEDICT
+        pyglossary ./_${filename}-formatted.txt ./${filename}-aard2.slob --read-format=Tabfile --write-format=Aard2Slob --name=${dictname}
 
-    - name: ZIP Stardict
+    - name: ZIP stardict
       if: steps.check_new_release.outputs.should_continue == 'true'
       run: |
         for base in *.ifo; do
           prefix="${base%.ifo}"
-          zip -j "${prefix}.zip" "$prefix.ifo" "$prefix.dict" "$prefix.idx" 2>/dev/null || true
+          zip -j "${prefix}.zip" "$prefix".{ifo,dict,idx,syn} 2>/dev/null
         done
 
     - name: ZIP dictd
       if: steps.check_new_release.outputs.should_continue == 'true'
-      env:
-        RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
       run: |
-        prefix=cc-cedict
-        zip -j "${prefix}-${RELEASE_DATE}-dictd.zip" \
-          "${prefix}-${RELEASE_DATE}-dictd.dict.dz" \
-          "${prefix}-${RELEASE_DATE}-dictd.index"
+        for base in *.index; do
+          prefix="${base%.index}"
+          zip -j "${prefix}.zip" "$prefix".{index,dict.dz} 2>/dev/null
+        done
 
     - name: Generate SHA256 checksums
       if: steps.check_new_release.outputs.should_continue == 'true'
       run: |
-        for file in _*.txt *.zip *.slob; do
-          sha256sum "$file" > "$file.sha256"
+        for file in *.{txt,zip,slob}; do
+          sha256sum "$file" > "$file.sha256";
         done
 
     - name: Create GitHub Release and upload files
@@ -156,6 +157,4 @@ jobs:
         tag_name: ${{ steps.get_latest_release.outputs.release_date }}
         name: "${{ steps.get_latest_release.outputs.release_date }}"
         files: |
-          _*.txt
-          *.zip
-          *.slob
+          *.{txt,zip,slob}
