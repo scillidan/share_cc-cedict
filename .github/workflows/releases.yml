@@ -94,7 +94,7 @@ jobs:
       if: steps.check_new_release.outputs.should_continue == 'true'
       uses: actions/setup-python@v6
       with:
-        python-version: "3.11"
+        python-version: "3.12"
 
     - name: Install pyglossary
       run: pip install pyglossary lxml beautifulsoup4 python-idzip tqdm pyicu
