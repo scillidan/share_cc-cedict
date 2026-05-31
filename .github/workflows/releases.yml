@@ -65,8 +65,12 @@ jobs:
         LATEST_DATE="${{ steps.get_latest_release.outputs.release_date }}"
         LAST_RELEASE="${{ steps.check_last_release.outputs.last_release }}"
 
-        if [ "$LATEST_DATE" = "$LAST_RELEASE" ]; then
-          echo "No new release date found. Skipping..."
+        if [ -z "$LAST_RELEASE" ]; then
+          echo "No previous release found. Proceeding with release: $LATEST_DATE"
+          echo "should_continue=true" >> $GITHUB_OUTPUT
+        elif [ "$LATEST_DATE" -le "$LAST_RELEASE" ]; then
+          echo "No newer release date found. Skipping..."
+          echo "Detected: $LATEST_DATE, latest GitHub release: $LAST_RELEASE"
           echo "should_continue=false" >> $GITHUB_OUTPUT
         else
           echo "New release available: $LATEST_DATE (previous: $LAST_RELEASE)"
