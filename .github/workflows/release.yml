@@ -1,8 +1,7 @@
-name: Create Releases
+name: Release
 
 on:
   schedule:
-    # 00:00 on the 1st of every month (UTC)
     - cron: '0 0 1 * *'
   workflow_dispatch:
 
@@ -15,7 +14,9 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v6
+      with:
+        persist-credentials: false
 
     - name: Install dependencies
       run: |
@@ -25,21 +26,13 @@ jobs:
     - name: (CC-CEDICT) Fetch latest release date
       id: get_latest_release
       run: |
-        # Download the webpage
         curl -s 'https://www.mdbg.net/chinese/dictionary?page=cedict' -o page.html
-
-        # Extract the latest release date from the webpage
         RELEASE_FULL=$(grep -oP '(?<=Latest release: <strong>).*?(?= GMT</strong>)' page.html | head -n 1)
-
-        # Verify that the extraction was successful
         if [ -z "$RELEASE_FULL" ]; then
           echo "Failed to extract the latest release date"
           exit 1
         fi
-
-        # Format the date
         RELEASE_DATE=$(echo "$RELEASE_FULL" | cut -d' ' -f1 | tr -d '-')
-
         echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
         echo "Latest release date detected: $RELEASE_DATE"
 
@@ -50,21 +43,19 @@ jobs:
           -H "Accept: application/vnd.github.v3+json" \
           https://api.github.com/repos/${{ github.repository }}/releases/latest \
           2>/dev/null | grep '"tag_name"' | cut -d'"' -f4 || echo "")
-
         if [ -z "$LATEST_TAG" ]; then
           echo "No previous releases found"
           LATEST_TAG=""
         fi
-
         echo "last_release=$LATEST_TAG" >> $GITHUB_OUTPUT
         echo "Last release from GitHub: $LATEST_TAG"
 
     - name: (CC-CEDICT) Check if new release is available
       id: check_new_release
+      env:
+        LATEST_DATE: ${{ steps.get_latest_release.outputs.release_date }}
+        LAST_RELEASE: ${{ steps.check_last_release.outputs.last_release }}
       run: |
-        LATEST_DATE="${{ steps.get_latest_release.outputs.release_date }}"
-        LAST_RELEASE="${{ steps.check_last_release.outputs.last_release }}"
-
         if [ -z "$LAST_RELEASE" ]; then
           echo "No previous release found. Proceeding with release: $LATEST_DATE"
           echo "should_continue=true" >> $GITHUB_OUTPUT
@@ -92,7 +83,7 @@ jobs:
 
     - name: Set up Python
       if: steps.check_new_release.outputs.should_continue == 'true'
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@8d9ed9ac5b5349cb32a66bb81d1a1499cddbe391  # v5
       with:
         python-version: "3.12"
 
@@ -106,29 +97,13 @@ jobs:
       run: |
         filename=CC-CEDICT-${RELEASE_DATE}
         dictname=CC-CEDICT
-
-        # tabfile
         pyglossary ./cedict_ts.u8 ./_${filename}.txt --read-format=EDICT2 --read-options="colorize_tones=false" --read-options="link_references=true" --read-options="summary_alternatives=true" --write-format=Tabfile --name=${dictname}  2>&1 | tee _log_u8_to_tabfile.txt
-
-        # tabfile-formatted
         python text_format.py _${filename}.txt _${filename}-formatted.txt
-
-        # stardict-mergesyns
         pyglossary ./_${filename}-formatted.txt ./${filename}-stardict-mergesyns --read-format=Tabfile --write-format=StardictMergeSyns --name=${dictname}
-
-        # tabfile-formatted-html2ansi
         python html2ansi.py _${filename}-formatted.txt _${filename}-formatted-html2ansi.txt
-
-        # sdcv
         pyglossary ./_${filename}-formatted-html2ansi.txt ./${filename}-sdcv --read-format=Tabfile --write-format=StardictMergeSyns --name=${dictname}
-
-        # dictd
         pyglossary ./_${filename}-formatted-html2ansi.txt ./${filename}-dictd --read-format=Tabfile --write-format=DictOrg --write-options="dictzip=true" --name=${dictname}
-
-        # yomichan
         pyglossary ./_${filename}-formatted.txt ./${filename}-yomichan.zip --read-format=Tabfile --write-format=Yomichan --name=${dictname}
-
-        # aard2
         pyglossary ./_${filename}-formatted.txt ./${filename}-aard2.slob --read-format=Tabfile --write-format=Aard2Slob --name=${dictname}
 
     - name: ZIP stardict
@@ -154,11 +129,13 @@ jobs:
           sha256sum "$file" > "$file.sha256";
         done
 
-    - name: Create GitHub Release and upload files
+    - name: Create GitHub Release
       if: steps.check_new_release.outputs.should_continue == 'true'
-      uses: softprops/action-gh-release@v3
-      with:
-        tag_name: ${{ steps.get_latest_release.outputs.release_date }}
-        name: "${{ steps.get_latest_release.outputs.release_date }}"
-        files: |
-          *.{txt,zip,slob}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_DATE: ${{ steps.get_latest_release.outputs.release_date }}
+      run: |
+        gh release create "$RELEASE_DATE" \
+          *.txt *.zip *.slob \
+          --title "$RELEASE_DATE" \
+          --generate-notes
